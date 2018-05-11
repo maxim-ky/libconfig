@@ -316,6 +316,12 @@ extern LIBCONFIG_API int config_lookup_string(const config_t *config,
                                               const char *path,
                                               const char **value);
 
+/* utility scale functions (change value due give unit) */
+/* return false with unknown unit name */
+int scale_int_by_unit(int *value, const char *unit);
+int scale_long_by_unit(long long *value, const char *unit);
+int scale_float_by_unit(double *value, const char *unit);
+
 #define /* config_setting_t * */ config_root_setting( \
   /* const config_t * */ C)                           \
   ((C)->root)

@@ -45,6 +45,7 @@ extern int libconfig_yyget_lineno();
 
 static const char *err_array_elem_type = "mismatched element type in array";
 static const char *err_duplicate_setting = "duplicate setting name";
+static const char *err_unknown_unit = "measure unit is unknown";
 
 #define IN_ARRAY() \
   (ctx->parent && (ctx->parent->type == CONFIG_TYPE_ARRAY))
@@ -79,6 +80,8 @@ void libconfig_yyerror(void *scanner, struct parse_context *ctx,
   double fval;
   char *sval;
 }
+
+%type <sval> measure_unit
 
 %token <ival> TOK_BOOLEAN TOK_INTEGER TOK_HEX
 %token <llval> TOK_INTEGER64 TOK_HEX64
@@ -186,6 +189,18 @@ string:
   | string TOK_STRING { parsectx_append_string(ctx, $2); free($2); }
   ;
 
+measure_unit:
+  /* measure unit can be empty */
+  {
+    $$ = 0;
+  }
+  |
+  TOK_NAME
+  {
+    $$ = $1;
+  }
+  ;
+
 simple_value:
     TOK_BOOLEAN
   {
@@ -207,8 +222,14 @@ simple_value:
     else
       config_setting_set_bool(ctx->setting, (int)$1);
   }
-  | TOK_INTEGER
+  | TOK_INTEGER measure_unit
   {
+    if(!scale_int_by_unit(&$1, $2))
+    {
+      libconfig_yyerror(scanner, ctx, scan_ctx, err_unknown_unit);
+      YYABORT;
+    }
+
     if(IN_ARRAY() || IN_LIST())
     {
       config_setting_t *e = config_setting_set_int_elem(ctx->parent, -1, $1);
@@ -229,8 +250,14 @@ simple_value:
       config_setting_set_format(ctx->setting, CONFIG_FORMAT_DEFAULT);
     }
   }
-  | TOK_INTEGER64
+  | TOK_INTEGER64 measure_unit
   {
+    if(!scale_long_by_unit(&$1, $2))
+    {
+      libconfig_yyerror(scanner, ctx, scan_ctx, err_unknown_unit);
+      YYABORT;
+    }
+
     if(IN_ARRAY() || IN_LIST())
     {
       config_setting_t *e = config_setting_set_int64_elem(ctx->parent, -1, $1);
@@ -251,8 +278,14 @@ simple_value:
       config_setting_set_format(ctx->setting, CONFIG_FORMAT_DEFAULT);
     }
   }
-  | TOK_HEX
+  | TOK_HEX measure_unit
   {
+    if(!scale_int_by_unit(&$1, $2))
+    {
+      libconfig_yyerror(scanner, ctx, scan_ctx, err_unknown_unit);
+      YYABORT;
+    }
+
     if(IN_ARRAY() || IN_LIST())
     {
       config_setting_t *e = config_setting_set_int_elem(ctx->parent, -1, $1);
@@ -273,8 +306,14 @@ simple_value:
       config_setting_set_format(ctx->setting, CONFIG_FORMAT_HEX);
     }
   }
-  | TOK_HEX64
+  | TOK_HEX64 measure_unit
   {
+    if(!scale_long_by_unit(&$1, $2))
+    {
+      libconfig_yyerror(scanner, ctx, scan_ctx, err_unknown_unit);
+      YYABORT;
+    }
+
     if(IN_ARRAY() || IN_LIST())
     {
       config_setting_t *e = config_setting_set_int64_elem(ctx->parent, -1, $1);
@@ -295,8 +334,14 @@ simple_value:
       config_setting_set_format(ctx->setting, CONFIG_FORMAT_HEX);
     }
   }
-  | TOK_FLOAT
+  | TOK_FLOAT measure_unit
   {
+    if(!scale_float_by_unit(&$1, $2))
+    {
+      libconfig_yyerror(scanner, ctx, scan_ctx, err_unknown_unit);
+      YYABORT;
+    }
+
     if(IN_ARRAY() || IN_LIST())
     {
       config_setting_t *e = config_setting_set_float_elem(ctx->parent, -1, $1);

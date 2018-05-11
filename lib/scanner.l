@@ -57,10 +57,10 @@
 true              [Tt][Rr][Uu][Ee]
 false             [Ff][Aa][Ll][Ss][Ee]
 name              [A-Za-z\*][-A-Za-z0-9_\*]*
-integer           [-+]?[0-9]+
-integer64         [-+]?[0-9]+L(L)?
-hex               0[Xx][0-9A-Fa-f]+
-hex64             0[Xx][0-9A-Fa-f]+L(L)?
+integer           __NOT_SUPPORTED__
+integer64         [-+]?[0-9]+L{0,2}
+hex               __NOT_SUPPORTED__
+hex64             0[Xx][0-9A-Fa-f]+L{0,2}
 hexchar           \\[Xx][0-9A-Fa-f]{2}
 float             ([-+]?([0-9]*)?\.[0-9]*([eE][-+]?[0-9]+)?)|([-+]?([0-9]+)(\.[0-9]*)?[eE][-+]?[0-9]+)
 comment           (#|\/\/).*$

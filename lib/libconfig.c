@@ -197,12 +197,12 @@ static void __config_write_value(const config_t *config,
       switch(format)
       {
         case CONFIG_FORMAT_HEX:
-          fprintf(stream, "0x" INT64_HEX_FMT "L", value->llval);
+          fprintf(stream, "0x" INT64_HEX_FMT, value->llval);
           break;
 
         case CONFIG_FORMAT_DEFAULT:
         default:
-          fprintf(stream, INT64_FMT "L", value->llval);
+          fprintf(stream, INT64_FMT, value->llval);
           break;
       }
       break;
@@ -734,6 +734,9 @@ void config_clear(config_t *config)
   config->root = __new(config_setting_t);
   config->root->type = CONFIG_TYPE_GROUP;
   config->root->config = config;
+
+  /* enabled by default */
+  config_set_auto_convert(config, 1);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1768,3 +1771,74 @@ int config_setting_is_aggregate(const config_setting_t *setting)
 }
 
 /* ------------------------------------------------------------------------- */
+
+/* - - - - - - - - - - - - - - -  units stuff - - - - - - - - - - - - - - - - */
+
+struct Unit
+{
+    char *symbols[ 16 ];
+    long long multiplier, divider;
+};
+
+static const struct Unit units[] =
+{
+  { { "us", "microseconds", "microsecond", 0 }, 1, 1000 },
+  { { "ms", "milliseconds", "millisecond", 0 }, 1, 1 }, // default time unit
+  { { "sec", "seconds", "second", "s", 0 }, 1000, 1 },
+  { { "minutes", "minute", "min", 0 }, 1000 * 60, 1 },
+  { { "hours", "hour", "h", "hr", 0 }, 1000 * 60 * 60, 1 },
+  { { "day", "days", "d", 0 }, 1000LL * 60 * 60 * 24, 1 },
+  { { "week", "weeks", "w", 0 }, 1000LL * 60 * 60 * 24 * 7, 1 },
+  { { "month", "months", 0 }, 1000LL * 60 * 60 * 24 * 30, 1 },
+  { { "year", "years", "y", 0 }, 1000LL * 60 * 60 * 24 * 365, 1 }
+};
+
+const struct Unit *find_unit( const char *test_symbol )
+{
+    unsigned unit_idx;
+    char *const *symbol;
+
+    for( unit_idx = 0; unit_idx < sizeof( units ) / sizeof( struct Unit ); ++ unit_idx )
+        for( symbol = units[ unit_idx ].symbols; *symbol; ++ symbol )
+            if( !strcmp( *symbol, test_symbol ) )
+                return units + unit_idx;
+    return 0;
+}
+
+int scale_int_by_unit(int *value, const char *unit_symbol)
+{
+    long long long_value = *value;
+    int result = scale_long_by_unit(& long_value, unit_symbol);
+    *value = long_value;
+    return result;
+}
+
+int scale_long_by_unit(long long *value, const char *unit_symbol)
+{
+    const struct Unit *unit;
+
+    if( ! unit_symbol ) // do nothing, it's unnamed unit
+        return 1;
+
+    unit = find_unit( unit_symbol );
+    if( ! unit )
+        return 0;
+    *value = *value * unit->multiplier / unit->divider;
+    return 1;
+}
+
+int scale_float_by_unit(double *value, const char *unit_symbol)
+{
+    const struct Unit *unit;
+
+    if( ! unit_symbol ) // do nothing, it's unnamed unit
+        return 1;
+
+    unit = find_unit( unit_symbol );
+    if( ! unit )
+        return 0;
+    *value = *value * unit->multiplier / unit->divider;
+    return 1;
+}
+
+/* - - - - - - - - - - - - - - -  end of units stuff - - - - - - - - - - - - - - - - */
